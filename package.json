@@ -1,0 +1,14 @@
+{
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.114",
+    "@types/node": "^18.16.3",
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1363.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "postbuild": "zip -rq index.zip index.js node_modules/*"
+  }
+}

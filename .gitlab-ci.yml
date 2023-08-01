@@ -1,0 +1,51 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  APP_NAME_PREFIX: powermate
+  APP_NAME: ingress_endpoint
+  APP_NAME_SUFFIX: lambda
+  ZIP: index.zip
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"
+      variables:
+        ENV: "prod"
+    - if: $CI_COMMIT_BRANCH == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"
+      variables:
+        ENV: "dev"
+
+build:
+  image: node:16
+  stage: build
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    policy: push
+    paths:
+      - node_modules
+  before_script:
+    - apt update
+    - apt-get install zip -y
+    - npm ci
+  script:
+    - npm run build
+  artifacts:
+    expire_in: 2h
+    paths:
+      - $ZIP
+
+deploy-lambda:
+  image:
+    name: amazon/aws-cli:latest
+    entrypoint: [""]
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: always
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      when: manual
+    - when: manual
+  script:
+    - aws lambda update-function-code --function-name "${APP_NAME_PREFIX}_${ENV}_${APP_NAME}_${APP_NAME_SUFFIX}" --zip-file fileb://$ZIP
